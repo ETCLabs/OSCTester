@@ -19,14 +19,12 @@ GeneratedFiles/
 *Release/
 *Debug/
 
-# Installer Files #
-install/deploy/
-
 # Visual Studio Temp #
 ######################
 *.exe
 # build result
-
+*.dll
+*.qm
 *.user
 # User-specific settings
 *.aps
