@@ -243,9 +243,10 @@ void OSCTesterMainWin::tcpReadyRead()
 
     size_t size = OSCStream::DEFAULT_MAX_FRAME_SIZE;
     char *decodedData = m_tcpStream.GetNextFrame(size);
-    if(decodedData)
+    while(decodedData)
     {
         handleOscIn(decodedData, size);
+        decodedData = m_tcpStream.GetNextFrame(size);
     }
 }
 
@@ -355,6 +356,7 @@ void OSCTesterMainWin::argumentComboChanged(int index)
         sb->setMinimum(0);
         sb->setMaximum(255);
         ui->twDataFields->setCellWidget(listPos, 1, sb);
+        connect(sb, SIGNAL(valueChanged(int)), this, SLOT(updateOscPacket()));
     }
         break;
     case OSCArgument::OSC_TYPE_INT32:
@@ -363,14 +365,16 @@ void OSCTesterMainWin::argumentComboChanged(int index)
         sb->setMinimum(0);
         sb->setMaximum(0xFFFFFFFF);
         ui->twDataFields->setCellWidget(listPos, 1, sb);
+        connect(sb, SIGNAL(valueChanged(int)), this, SLOT(updateOscPacket()));
     }
         break;
     case OSCArgument::OSC_TYPE_INT64:
     {
         QSpinBox *sb = new QSpinBox(ui->twDataFields);
         sb->setMinimum(0);
-        sb->setMaximum(std::numeric_limits<int>::max()); // TODO: QSpinBox may not work for values >32bit max
+        sb->setMaximum(0xFFFFFFFF); // TODO: QSpinBox may not work for values >32bit max
         ui->twDataFields->setCellWidget(listPos, 1, sb);
+       connect(sb, SIGNAL(valueChanged(int)), this, SLOT(updateOscPacket()));
     }
         break;
     case OSCArgument::OSC_TYPE_FLOAT32:
@@ -378,6 +382,7 @@ void OSCTesterMainWin::argumentComboChanged(int index)
         QDoubleSpinBox *sb = new QDoubleSpinBox(ui->twDataFields);
         sb->setMinimum(0);
         ui->twDataFields->setCellWidget(listPos, 1, sb);
+        connect(sb, SIGNAL(valueChanged(double)), this, SLOT(updateOscPacket()));
     }
         break;
     case OSCArgument::OSC_TYPE_FLOAT64:
@@ -385,6 +390,7 @@ void OSCTesterMainWin::argumentComboChanged(int index)
         QDoubleSpinBox *sb = new QDoubleSpinBox(ui->twDataFields);
         sb->setMinimum(0);
         ui->twDataFields->setCellWidget(listPos, 1, sb);
+        connect(sb, SIGNAL(valueChanged(double)), this, SLOT(updateOscPacket()));
     }
         break;
     case OSCArgument::OSC_TYPE_STRING:

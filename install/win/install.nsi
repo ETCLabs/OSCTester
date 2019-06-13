@@ -24,7 +24,7 @@ SetCompressor /SOLID lzma
 
 ; MUI Settings
 !define MUI_ABORTWARNING
-!define MUI_ICON "..\res\icon.ico"
+!define MUI_ICON "..\..\res\icon.ico"
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 
 ; MSVC RunTime
@@ -81,7 +81,7 @@ Section "Main Application" sec01
 ;section, or if there are more sections including optional components.
 	!insertmacro UNINSTALL.LOG_OPEN_INSTALL
 
-	File /r ".\deploy\"
+	File /r "..\deploy\"
 
 ;Once required files/dirs added and before change the parent output directory we need to
 ;close the opened previously uninstall log macros block.
