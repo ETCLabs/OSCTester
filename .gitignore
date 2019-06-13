@@ -63,3 +63,7 @@ GeneratedFiles/
 
 #Zip file for builds
 *.zip
+
+# Mac Files
+*.dmg
+.DS_Store
