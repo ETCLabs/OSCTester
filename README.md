@@ -1,4 +1,8 @@
+![OSCTester](./res/Icon48.png)
 # OSCTester
+[![Build status](https://ci.appveyor.com/api/projects/status/9lil6xmi9vq1lwnd?svg=true)](https://ci.appveyor.com/project/docsteer/osctester)
+[![Build Status](https://travis-ci.org/ETCLabs/OSCTester.svg?branch=master)](https://travis-ci.org/ETCLabs/OSCTester)
+
 A simple test application for OSC, including UDP and TCP transport
 
 # About this ETCLabs Project
