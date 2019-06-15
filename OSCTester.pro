@@ -17,13 +17,15 @@ GIT_COMMAND = git --git-dir $$shell_quote($$PWD/.git) --work-tree $$shell_quote(
 GIT_TAG = $$system($$GIT_COMMAND describe --always --tags)
 
 SOURCES += \
+    src/OSCTesterWidgets.cpp \
         src/main.cpp \
     src/OSCParser.cpp \
     src/OSCTesterMainWin.cpp
 
 HEADERS += \
     src/OSCParser.h \
-    src/OSCTesterMainWin.h
+    src/OSCTesterMainWin.h \
+    src/OSCTesterWidgets.h
 
 FORMS += \
     ui/OSCTesterMainWin.ui

@@ -25,7 +25,24 @@
 #include <limits>
 #include <QDebug>
 #include <QNetworkDatagram>
+#include <QDateTimeEdit>
+#include <QDateTime>
+#include "OSCTesterWidgets.h"
 
+
+qint64 qDateTimeToOSCTime(const QDateTime &time)
+{
+    qint64 result = 0;
+    QDateTime epoch;
+    epoch.setDate(QDate(1900, 1, 1));
+    epoch.setTime(QTime(0, 0, 0));
+    quint32 firstPart = static_cast<quint32>(epoch.secsTo(time));
+    result |= (firstPart << 6);
+
+    // TODO handle sub-second precision
+    return result;
+
+}
 
 QString oscTypeToString(const int type)
 {
@@ -160,15 +177,48 @@ void OSCTesterMainWin::updateOscPacket()
             writer.AddString(value.toStdString());
         }
             break;
-            // TODO other types
         case OSCArgument::OSC_TYPE_BLOB:			// b
+        {
+            BlobWidget *edit = dynamic_cast<BlobWidget *>(ui->twDataFields->cellWidget(row, 1));
+            writer.AddBlob(edit->currentValue().constData(), edit->currentValue().size());
+        }
+            break;
         case OSCArgument::OSC_TYPE_TIME:			// t (OSC-timetag)
+        {
+            QDateTimeEdit *edit = dynamic_cast<QDateTimeEdit *>(ui->twDataFields->cellWidget(row, 1));
+            writer.AddTime(qDateTimeToOSCTime(edit->dateTime()));
+        }
+            break;
         case OSCArgument::OSC_TYPE_RGBA32:		// r
+        {
+            RGBAWidget *edit = dynamic_cast<RGBAWidget *>(ui->twDataFields->cellWidget(row, 1));
+            QColor color = edit->getValue();
+            OSCArgument::sRGBA value;
+            value.r = static_cast<quint8>(color.red());
+            value.g = static_cast<quint8>(color.green());
+            value.b = static_cast<quint8>(color.blue());
+            value.a = static_cast<quint8>(color.alpha());
+            writer.AddRGBA(value);
+        }
+            break;
         case OSCArgument::OSC_TYPE_MIDI:		// m (4 byte MIDI message. Bytes from MSB to LSB are: port id, status byte, data1, data2)
+        {
+            MIDIWidget *edit = dynamic_cast<MIDIWidget *>(ui->twDataFields->cellWidget(row, 1));
+            int32_t value = edit->value();
+            writer.AddMidi(value);
+        }
+            break;
         case OSCArgument::OSC_TYPE_TRUE:			// T (True, 0 bytes)
+            writer.AddTrue();
+            break;
         case OSCArgument::OSC_TYPE_FALSE:			// F (False, 0 bytes)
+            writer.AddFalse();
+            break;
         case OSCArgument::OSC_TYPE_NULL:			// N (Null, 0 bytes
+            writer.AddNull();
+            break;
         case OSCArgument::OSC_TYPE_INFINITY:
+            writer.AddInfinity();
             break;
         }
         row++;
@@ -286,11 +336,18 @@ void OSCTesterMainWin::handleOscIn(char *data, size_t size)
         ui->twParsedOsc->setItem(i, 0, new QTableWidgetItem(oscTypeToString(a.GetType())));
         ui->twParsedOsc->setItem(i, 1, new QTableWidgetItem(desc));
     }
+
+    QString historyString = QDateTime::currentDateTime().toString();
+    historyString.append(" - ");
+    historyString.append(QString::fromStdString(reader.GetPath()));
+    ui->lwHistory->addItem(historyString);
+
 }
 
 
 void OSCTesterMainWin::tcpError(QAbstractSocket::SocketError error)
 {
+    Q_UNUSED(error);
     QTcpSocket *socket = static_cast<QTcpSocket *>(m_socket);
     QMessageBox::warning(this, tr("TCP Socket Error"),
                          tr("Couldn't connect to %1, error %2").arg(ui->leParadigmIp->text(), socket->errorString()));
@@ -363,7 +420,7 @@ void OSCTesterMainWin::argumentComboChanged(int index)
     {
         QSpinBox *sb = new QSpinBox(ui->twDataFields);
         sb->setMinimum(0);
-        sb->setMaximum(0xFFFFFFFF);
+        sb->setMaximum(std::numeric_limits<int>::max());
         ui->twDataFields->setCellWidget(listPos, 1, sb);
         connect(sb, SIGNAL(valueChanged(int)), this, SLOT(updateOscPacket()));
     }
@@ -372,7 +429,7 @@ void OSCTesterMainWin::argumentComboChanged(int index)
     {
         QSpinBox *sb = new QSpinBox(ui->twDataFields);
         sb->setMinimum(0);
-        sb->setMaximum(0xFFFFFFFF); // TODO: QSpinBox may not work for values >32bit max
+        sb->setMaximum(std::numeric_limits<int>::max()); // TODO: QSpinBox may not work for values >32bit max
         ui->twDataFields->setCellWidget(listPos, 1, sb);
        connect(sb, SIGNAL(valueChanged(int)), this, SLOT(updateOscPacket()));
     }
@@ -399,13 +456,72 @@ void OSCTesterMainWin::argumentComboChanged(int index)
     }
         break;
     case OSCArgument::OSC_TYPE_BLOB:
+    {
+        BlobWidget *w = new BlobWidget(ui->twDataFields);
+        ui->twDataFields->setCellWidget(listPos, 1, w);
+        connect(w, SIGNAL(textChanged(QString)), this, SLOT(updateOscPacket()));
+    }
+        break;
     case OSCArgument::OSC_TYPE_TIME:
+    {
+        QDateTimeEdit *dt = new QDateTimeEdit(ui->twDataFields);
+        ui->twDataFields->setCellWidget(listPos, 1, dt);
+        connect(dt, SIGNAL(dateTimeChanged(QDateTime)), this, SLOT(updateOscPacket()));
+    }
+        break;
     case OSCArgument::OSC_TYPE_RGBA32:
+    {
+        RGBAWidget *w = new RGBAWidget(ui->twDataFields);
+        ui->twDataFields->setCellWidget(listPos, 1, w);
+        connect(w, SIGNAL(valueChanged()), this, SLOT(updateOscPacket()));
+    }
+        break;
     case OSCArgument::OSC_TYPE_MIDI:
+    {
+        MIDIWidget *w = new MIDIWidget(ui->twDataFields);
+        ui->twDataFields->setCellWidget(listPos, 1, w);
+        connect(w, SIGNAL(valueChanged()), this, SLOT(updateOscPacket()));
+    }
+        break;
     case OSCArgument::OSC_TYPE_TRUE:
+    {
+        delete ui->twDataFields->cellWidget(listPos, 1);
+        QTableWidgetItem *item = new QTableWidgetItem();
+        item->setText(tr("TRUE"));
+        item->setFlags(Qt::ItemIsEnabled);
+        item->setTextAlignment(Qt::AlignHCenter);
+        ui->twDataFields->setItem(listPos, 1, item);
+    }
+        break;
     case OSCArgument::OSC_TYPE_FALSE:
+    {
+        delete ui->twDataFields->cellWidget(listPos, 1);
+        QTableWidgetItem *item = new QTableWidgetItem();
+        item->setText(tr("FALSE"));
+        item->setFlags(Qt::ItemIsEnabled);
+        item->setTextAlignment(Qt::AlignHCenter);
+        ui->twDataFields->setItem(listPos, 1, item);
+    }
+        break;
     case OSCArgument::OSC_TYPE_NULL:
+    {
+        delete ui->twDataFields->cellWidget(listPos, 1);
+        QTableWidgetItem *item = new QTableWidgetItem();
+        item->setText(tr("NULL"));
+        item->setFlags(Qt::ItemIsEnabled);
+        item->setTextAlignment(Qt::AlignHCenter);
+        ui->twDataFields->setItem(listPos, 1, item);
+    }
+        break;
     case OSCArgument::OSC_TYPE_INFINITY:
+    {
+        delete ui->twDataFields->cellWidget(listPos, 1);
+        QTableWidgetItem *item = new QTableWidgetItem();
+        item->setText(tr("INFINITY"));
+        item->setFlags(Qt::ItemIsEnabled);
+        item->setTextAlignment(Qt::AlignHCenter);
+        ui->twDataFields->setItem(listPos, 1, item);
+    }
         break;
     default:
         break;
