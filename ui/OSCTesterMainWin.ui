@@ -224,7 +224,7 @@
             <enum>QTabWidget::Triangular</enum>
            </property>
            <property name="currentIndex">
-            <number>1</number>
+            <number>2</number>
            </property>
            <widget class="QWidget" name="tab">
             <attribute name="title">
@@ -379,6 +379,16 @@
                 </layout>
                </widget>
               </widget>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="tab_3">
+            <attribute name="title">
+             <string>History</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="verticalLayout_9">
+             <item>
+              <widget class="QListWidget" name="lwHistory"/>
              </item>
             </layout>
            </widget>
