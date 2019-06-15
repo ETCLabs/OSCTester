@@ -56,8 +56,8 @@ class OSCCompileTimeChecks
 
 OSCStream::OSCStream(EnumFrameMode frameMode, size_t maxFrameSize/* =DEFAULT_MAX_FRAME_SIZE */, size_t maxBufSize/* =DEFAULT_MAX_BUF_SIZE */)
 	: m_FrameMode(frameMode)
-	, m_Buf(0)
-	, m_Capacity(0)
+    , m_Buf(nullptr)
+    , m_Capacity(0)
 	, m_Size(0)
 	, m_MaxFrameSize(maxFrameSize)
 	, m_MaxBufSize(maxBufSize)
@@ -78,7 +78,7 @@ void OSCStream::Clear()
 	if( m_Buf )
 	{
 		delete[] m_Buf;
-		m_Buf = 0;
+        m_Buf = nullptr;
 	}
 	
 	m_Capacity = m_Size = 0;
@@ -149,7 +149,7 @@ char* OSCStream::GetNextFrame(size_t &size)
 		default:				break;
 	}
 	
-	return 0;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -179,7 +179,7 @@ char* OSCStream::GetNextFrame_Mode_1_0(size_t &size)
 			Chop( sizeof(packetSizeHeader) );
 	}
 	
-	return 0;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -202,7 +202,7 @@ char* OSCStream::GetNextFrame_Mode_1_1(size_t &size)
 							size++;
 					}
 				
-					char *frame = 0;
+                    char *frame = nullptr;
 				
 					if(size != 0)
 					{
@@ -234,7 +234,7 @@ char* OSCStream::GetNextFrame_Mode_1_1(size_t &size)
 			Reset();	// m_Buf only contains SLIP_END's
 	}
 	
-	return 0;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -271,7 +271,7 @@ char* OSCStream::CreateFrame(EnumFrameMode frameMode, const char *buf, size_t &s
 		default:				break;
 	}
 	
-	return 0;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -280,7 +280,7 @@ char* OSCStream::CreateFrame_Mode_1_0(const char *buf, size_t &size, size_t maxF
 {
 	if(buf && size!=0 && (maxFrameSize==NO_SIZE_LIMIT || size<=maxFrameSize))
 	{
-		int32_t packetSizeHeader = static_cast<int32_t>(size);
+        size_t packetSizeHeader = size;
 		size += sizeof(packetSizeHeader);
 		char *frame = new char[size];
 		memcpy(frame, &packetSizeHeader, sizeof(packetSizeHeader));
@@ -289,7 +289,7 @@ char* OSCStream::CreateFrame_Mode_1_0(const char *buf, size_t &size, size_t maxF
 		return frame;
 	}
 	
-	return 0;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -343,7 +343,7 @@ char* OSCStream::CreateFrame_Mode_1_1(const char *buf, size_t &size, size_t maxF
 		return encoded;
 	}
 
-	return 0;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -370,7 +370,7 @@ void OSCArgument::sRGBA::fromUInt(unsigned int n)
 
 OSCArgument::OSCArgument()
 	: m_Type(OSC_TYPE_INVALID)
-	, m_pBuf(0)
+    , m_pBuf(nullptr)
 	, m_Size(0)
 {
 }
@@ -438,7 +438,7 @@ bool OSCArgument::Init(EnumArgumentTypes type, char *buf, size_t size)
 
 					if(p <= ++bufEnd)
 					{
-						m_Size = (p - buf);
+                        m_Size = static_cast<size_t>(p - buf);
 						return true;
 					}
 				}
@@ -1030,7 +1030,7 @@ OSCArgument* OSCArgument::GetArgs(char *buf, size_t size, size_t &count)
 {
 	size_t requestedCount = count;
 
-	OSCArgument *args = 0;
+    OSCArgument *args = nullptr;
 	count = 0;
 
 	if(requestedCount!=0 && buf && size!=0)
@@ -1069,7 +1069,7 @@ OSCArgument* OSCArgument::GetArgs(char *buf, size_t size, size_t &count)
 			if(requestedCount != 0)
 			{
 				if(binaryData > bufEnd)
-					binaryData = 0;	// still invalid, some OSC types do not have any binary data
+                    binaryData = nullptr;	// still invalid, some OSC types do not have any binary data
 
 				// now binaryData should point to the first argument's binary data
 				args = new OSCArgument[requestedCount];
@@ -1088,7 +1088,7 @@ OSCArgument* OSCArgument::GetArgs(char *buf, size_t size, size_t &count)
 						binaryData += args[count].GetSize();
 
 						if(binaryData > bufEnd)
-							binaryData = 0; // still invalid, some OSC types do not have any binary data
+                            binaryData = nullptr; // still invalid, some OSC types do not have any binary data
 					}
 				}
 			}
@@ -1460,7 +1460,7 @@ OSCPacketWriter::sArgInfo& OSCPacketWriter::sArgInfo::operator=(const sArgInfo &
 					memcpy(data.binaryData, other.data.binaryData, size);
 				}
 				else
-					data.binaryData = 0;
+                    data.binaryData = nullptr;
 			}
 			break;
 
@@ -1484,7 +1484,7 @@ void OSCPacketWriter::sArgInfo::clear()
 				if( data.binaryData )
 				{
 					delete[] data.binaryData;
-					data.binaryData = 0;
+                    data.binaryData = nullptr;
 				}
 			}
 			break;
@@ -1605,6 +1605,7 @@ void OSCPacketWriter::WriteArg(char *buf, const sArgInfo &info) const
 		case OSCArgument::OSC_TYPE_CHAR:
 		case OSCArgument::OSC_TYPE_INT32:
 		case OSCArgument::OSC_TYPE_MIDI:
+        case OSCArgument::OSC_TYPE_RGBA32:
 			memcpy(buf, &info.data.int32Data, 4);
 			OSCArgument::Swap32(buf);
 			break;
@@ -1630,7 +1631,12 @@ void OSCPacketWriter::WriteArg(char *buf, const sArgInfo &info) const
 			memcpy(buf, info.data.binaryData, info.size);
 			break;
 
-		default:
+        case OSCArgument::OSC_TYPE_TRUE:
+        case OSCArgument::OSC_TYPE_FALSE:
+        case OSCArgument::OSC_TYPE_NULL:
+        case OSCArgument::OSC_TYPE_INFINITY:
+        case OSCArgument::OSC_TYPE_INVALID:
+        case OSCArgument::OSC_TYPE_COUNT:
 			break;
 	}
 }
@@ -1639,7 +1645,7 @@ void OSCPacketWriter::WriteArg(char *buf, const sArgInfo &info) const
 
 char* OSCPacketWriter::Create(size_t &size) const
 {
-	char *buf = 0;
+    char *buf = nullptr;
 
 	size = ComputeSize();
 	if(size != 0)
@@ -1648,7 +1654,7 @@ char* OSCPacketWriter::Create(size_t &size) const
 		if( !Write(buf,size) )
 		{
 			delete[] buf;
-			buf = 0;
+            buf = nullptr;
 			size = 0;
 		}
 	}
@@ -1683,7 +1689,11 @@ void OSCPacketWriter::AddBool(bool b)
 
 void OSCPacketWriter::AddChar(char c)
 {
-	AddInt32(c);
+    sArgInfo *arg = new sArgInfo;
+    arg->type = OSCArgument::OSC_TYPE_CHAR;
+    arg->data.int32Data = static_cast<unsigned char>(c);
+    arg->size = 4;
+    m_Q.push_back(arg);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1999,7 +2009,7 @@ OSCPacketWriter* OSCPacketWriter::CreatePacketWriterForString(const char *str)
 		if( args )
 		{
 			// create packet with path
-			OSCPacketWriter *packet = new OSCPacketWriter( std::string(str,args-str) );
+            OSCPacketWriter *packet = new OSCPacketWriter( std::string(str,static_cast<size_t>(args-str)) );
 
 			// append comma delimited args
 			bool quoted = false;
@@ -2085,14 +2095,14 @@ OSCPacketWriter* OSCPacketWriter::CreatePacketWriterForString(const char *str)
 	}
 
 	// not an osc string
-	return 0;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 char* OSCPacketWriter::CreateForString(const char *str, size_t &outSize)
 {
-	char *buf = 0;
+    char *buf = nullptr;
 	outSize = 0;
 
 	OSCPacketWriter *packet = CreatePacketWriterForString(str);
@@ -2109,7 +2119,7 @@ char* OSCPacketWriter::CreateForString(const char *str, size_t &outSize)
 
 char* OSCPacketWriter::CreateForString(const char *str, size_t strSize, size_t &outSize)
 {
-	char *buf = 0;
+    char *buf = nullptr;
 	outSize = 0;
 
 	OSCPacketWriter *packet = CreatePacketWriterForString(str, strSize);
@@ -2145,7 +2155,7 @@ OSCPacketWriter* OSCPacketWriter::CreatePacketWriterForString(const char *str, s
 	}
 
 	// not an osc string
-	return 0;
+    return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2159,7 +2169,7 @@ OSCPacketWriter** OSCPacketWriter::CreateList(const OSCPacketWriter &packet, siz
 
 OSCPacketWriter** OSCPacketWriter::CreateList(const OSCPacketWriter &packet, size_t maxPacketBytes, size_t &count)
 {
-	OSCPacketWriter **packets = 0;
+    OSCPacketWriter **packets = nullptr;
 
 	if( packet.m_Q.empty() )
 	{
@@ -2173,7 +2183,7 @@ OSCPacketWriter** OSCPacketWriter::CreateList(const OSCPacketWriter &packet, siz
 	else
 	{
 		std::deque<OSCPacketWriter*> q;
-		OSCPacketWriter *listPacket = 0;
+        OSCPacketWriter *listPacket = nullptr;
 		size_t listIndex = 0;
 
 		for(ARG_Q::const_iterator i=packet.m_Q.begin(); i!=packet.m_Q.end(); )
@@ -2205,7 +2215,7 @@ OSCPacketWriter** OSCPacketWriter::CreateList(const OSCPacketWriter &packet, siz
 				listIndex += listPacket->m_Q.size();
 				listPacket->SetPath(listPath);
 				q.push_back(listPacket);
-				listPacket = 0;
+                listPacket = nullptr;
 			}
 			else
 				i++;
@@ -2355,7 +2365,7 @@ bool OSCBundleWriter::Write(char *buf, size_t size) const
 
 char* OSCBundleWriter::Create(size_t &size) const
 {
-	char *buf = 0;
+    char *buf = nullptr;
 
 	size = ComputeSize();
 	if(size != 0)
@@ -2364,7 +2374,7 @@ char* OSCBundleWriter::Create(size_t &size) const
 		if( !Write(buf,size) )
 		{
 			delete[] buf;
-			buf = 0;
+            buf = nullptr;
 			size = 0;
 		}
 	}
@@ -2441,8 +2451,8 @@ bool OSCMethod::ProcessPacket(OSCParserClient &client, char *buf, size_t size)
 
 		if(size != 0)
 		{
-			char *methodName = 0;
-			char *nextBuf = 0;
+            char *methodName = nullptr;
+            char *nextBuf = nullptr;
 			bool last = true;
 
 			char *p = buf;
@@ -2489,7 +2499,7 @@ bool OSCMethod::ProcessPacket(OSCParserClient &client, char *buf, size_t size)
 						if( !ExecuteMethod(client,/*last*/false,buf,size) )
 							return false;
 
-						return ProcessPacket(client, nextBuf, size-(nextBuf-buf));
+                        return ProcessPacket(client, nextBuf, size-(nextBuf-buf));
 					}
 				}
 			}
@@ -2588,7 +2598,7 @@ void OSCMethod::PrintPrivate(OSCParserClient &client, unsigned int depth) const
 ////////////////////////////////////////////////////////////////////////////////
 
 OSCParser::OSCParser()
-	: m_Root(0)
+    : m_Root(nullptr)
 {
 }
 
@@ -2596,7 +2606,7 @@ OSCParser::OSCParser()
 
 OSCParser::~OSCParser()
 {
-	SetRoot(0);
+    SetRoot(nullptr);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

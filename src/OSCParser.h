@@ -300,7 +300,7 @@ public:
     const std::string GetPath() const { return m_path;}
 
     size_t ArgumentCount() const { return m_arguments.size();}
-    OSCArgument GetArgument(int index) { return m_arguments.at(index);}
+    OSCArgument GetArgument(size_t index) { return m_arguments.at(index);}
 private:
     // not allowed
     OSCPacketReader(const OSCPacketReader&) {}
