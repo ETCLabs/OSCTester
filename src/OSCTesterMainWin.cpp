@@ -27,6 +27,7 @@
 #include <QNetworkDatagram>
 #include <QDateTimeEdit>
 #include <QDateTime>
+#include <QSettings>
 #include "OSCTesterWidgets.h"
 
 
@@ -121,13 +122,26 @@ OSCTesterMainWin::OSCTesterMainWin(QWidget *parent) :
     m_tcpStream(OSCStream::FRAME_MODE_DEFAULT)
 {
     ui->setupUi(this);
+
+    // Load Saved Settings
+    QSettings s;
+
+    ui->leTargetIp->setText(s.value("ip", QVariant("10.101.10.10")).toString());
+    ui->sbPort->setValue(s.value("port", QVariant(3031)).toInt());
+
     connect(ui->leOscPath, SIGNAL(textChanged(const QString &)), this, SLOT(updateOscPacket()));
     connect(ui->cbSlip, SIGNAL(toggled(bool)), this, SLOT(updateOscPacket()));
     connect(ui->twDataFields, SIGNAL(itemChanged(QTableWidgetItem *)), this, SLOT(updateOscPacket()));
+
 }
 
 OSCTesterMainWin::~OSCTesterMainWin()
 {
+    // Save Settings
+    QSettings s;
+    s.setValue("ip", QVariant(ui->leTargetIp->text()));
+    s.setValue("port", QVariant(ui->sbPort->value()));
+
     delete ui;
 }
 
@@ -257,7 +271,7 @@ void OSCTesterMainWin::on_btnConnect_pressed()
     {
         // TCP
         m_socket = new QTcpSocket(this);
-        m_socket->connectToHost(ui->leParadigmIp->text(), ui->sbPort->value());
+        m_socket->connectToHost(ui->leTargetIp->text(), ui->sbPort->value());
         connect(m_socket, &QIODevice::readyRead, this, &OSCTesterMainWin::tcpReadyRead);
         connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, &OSCTesterMainWin::tcpError);
         connect(m_socket, SIGNAL(connected()), this, SLOT(tcpSocketConnected()));
@@ -275,7 +289,7 @@ void OSCTesterMainWin::on_btnConnect_pressed()
             QMessageBox::warning(this, tr("Couldn't Bind"), tr("Unable to bind UDP socket"));
             return;
         }
-        m_socket->connectToHost(ui->leParadigmIp->text(), ui->sbPort->value());
+        m_socket->connectToHost(ui->leTargetIp->text(), ui->sbPort->value());
         connect(m_socket, SIGNAL(readyRead()), this, SLOT(udpReadyRead()));
         ui->btnConnect->setEnabled(false);
     }
@@ -350,7 +364,7 @@ void OSCTesterMainWin::tcpError(QAbstractSocket::SocketError error)
     Q_UNUSED(error);
     QTcpSocket *socket = static_cast<QTcpSocket *>(m_socket);
     QMessageBox::warning(this, tr("TCP Socket Error"),
-                         tr("Couldn't connect to %1, error %2").arg(ui->leParadigmIp->text(), socket->errorString()));
+                         tr("Couldn't connect to %1, error %2").arg(ui->leTargetIp->text(), socket->errorString()));
     ui->btnConnect->setEnabled(true);
     ui->lblConnStatus->setText("Not Connected");
 }

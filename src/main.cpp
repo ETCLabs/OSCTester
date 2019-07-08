@@ -24,6 +24,9 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    a.setApplicationName("ETCOscTester");
+    a.setOrganizationName("ETC Labs");
+
     OSCTesterMainWin w;
     w.show();
 
